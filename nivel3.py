@@ -13,17 +13,13 @@ from settings_screen import *
 from coins import Coin
 from pantalla_inicio import Menu
 from diamantes import Diamante
-from nivel2 import Nivel2
-from nivel3 import Nivel3
-# from recursos import Recursos
-
 
 class Nivel:
     def __init__(self, level_number):
         self.level_number = level_number
 
 
-class Nivel1(Nivel):
+class Nivel3(Nivel):
     def __init__(self, level_number=1):
         super().__init__(level_number)  
         pygame.init()
@@ -38,12 +34,10 @@ class Nivel1(Nivel):
         pygame.display.set_caption("The jungle")
         pygame.display.set_icon(pygame.image.load("./src/assets/images/icon.png"))
         self.background = pygame.transform.scale(pygame.image.load("./src/assets/images/background.jpg"), (WIDTH, HEIGHT))
-    
-        
         
         self.music_paused = False
         self.elapsed_time = 0  
-        self.total_time = 45 
+        self.total_time = 30 
         self.player_vidas = 3
         self.score = 0
         self.current_screen = "game"
@@ -79,6 +73,7 @@ class Nivel1(Nivel):
         self.enemy_shooting = False 
         self.shoot_sound = pygame.mixer.Sound("./src/assets/sounds/sonido_laser.mp3")
         self.obstacles_touched = set()
+
 
 
         # Creación de instancias de SpriteSheets
@@ -125,13 +120,13 @@ class Nivel1(Nivel):
             obstacle = Obstacle(pos_x, pos_y, elemento)
             self.obstacles_group.add(obstacle)
             
-        for coin in range(30):
+        for coin in range(25):
             pos_x = randint(0, WIDTH - WIDTH_COINS)
             pos_y = randint(0, HEIGHT - HEIGHT_COINS)
             coin = Coin(pos_x, pos_y, "./src/assets/images/coins.png")
             self.coins_group.add(coin)
             
-        for diamante in range(15):
+        for diamante in range(10):
             pos_x = randint(0, WIDTH - WIDTH_COINS)
             pos_y = randint(0, HEIGHT - HEIGHT_COINS)
             diamante = Diamante(pos_x, pos_y, "./src/assets/images/diamantes.jpg")
@@ -142,15 +137,13 @@ class Nivel1(Nivel):
         self.platform2 = InvisiblePlatform(330, 200, 40, 50)
         self.platform3 = InvisiblePlatform(750, 200, 40, 50)
         self.platform4 = InvisiblePlatform(1010, 315, 40, 50)
+        self.platform_piso = InvisiblePlatform(0, HEIGHT - 20, WIDTH, 20)
 
-        self.invisible_platforms_group.add(self.platform1, self.platform2, self.platform3, self.platform4)
+        self.invisible_platforms_group.add(self.platform1, self.platform2, self.platform3, self.platform4, self.platform_piso)
 
     def start_timer(self):
         self.timer_active = True
         self.timer_elapsed = 0
-    
-        #icono de menu de opciones
-
         self.initial_state()  
 
     def initial_state(self):
@@ -166,8 +159,7 @@ class Nivel1(Nivel):
         running = True
         countdown_start = pygame.time.get_ticks()
         self.screen = screen
-        self.init()
-        
+        self.init()  
         while running:
             self.clock.tick(FPS)
 
@@ -177,7 +169,7 @@ class Nivel1(Nivel):
                     
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     mouse_pos = pygame.mouse.get_pos()
-
+                    
                 elif event.type == KEYDOWN:
                     if event.key == K_UP:
                         self.player.jump()
@@ -292,14 +284,18 @@ class Nivel1(Nivel):
 
         option_rect1 = option_text1.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2 - 40))
         option_rect2 = option_text2.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2 + 40))
+        
+
 
         self.screen.blit(option_text1, option_rect1)
         self.screen.blit(option_text2, option_rect2)
 
         pygame.display.flip()
 
+
         pygame.mixer.music.stop()
 
+        # juego = Juego()
         running = True
         while running:
             for event in pygame.event.get():
@@ -334,25 +330,31 @@ class Nivel1(Nivel):
             self.screen.blit(option_text1, option_rect1)
             self.screen.blit(option_text2, option_rect2)
 
+
+
+
             pygame.display.flip()
 
+        
     def next_level_menu(self):
         self.screen.fill(black)
+
         next_level_font = pygame.font.Font(None, 50)
         next_level_text = next_level_font.render("Seleccionar siguiente nivel:", True, (white))
         text_rect = next_level_text.get_rect(center=(self.screen.get_width() // 2, 200))
         self.screen.blit(next_level_text, text_rect)
 
+        # Muestra las opciones para el Nivel 2 y Nivel 3
         option_font = pygame.font.Font(None, 36)
         texto_nivel2 = option_font.render("Nivel 2", True, (white))
         texto_nivel3 = option_font.render("Nivel 3", True, (white))
 
         nivel2 = texto_nivel2.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2 - 40))
         nivel3 = texto_nivel3.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2 + 40))
+        
 
         self.screen.blit(texto_nivel2, nivel2)
         self.screen.blit(texto_nivel3, nivel3)
-
         running = True
         while running:
             for event in pygame.event.get():
@@ -360,58 +362,14 @@ class Nivel1(Nivel):
                     self.close()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     mouse_pos = pygame.mouse.get_pos()
-                    if nivel2.collidepoint(mouse_pos):
-                        self.start_level(Nivel2(level_number=2))
-                        self.show_countdown("Nivel 2")
-                        running = False  
-                    elif nivel3.collidepoint(mouse_pos):
+                    if nivel2.collidepoint(mouse_pos):  # Suponiendo que nivel2 es el rectángulo de la opción del nivel 2
                         self.start_level(Nivel3(level_number=3))
-                        self.show_countdown("Nivel 3")
-                        running = False  
-            mouse_pos = pygame.mouse.get_pos()
-            if nivel2.collidepoint(mouse_pos):
-                texto_nivel2 = option_font.render("Nivel 2", True, (red))
-            else:
-                texto_nivel2 = option_font.render("Nivel 2", True, (white))
+                        running = False  # Salir del bucle
 
-            if nivel3.collidepoint(mouse_pos):
-                texto_nivel3 = option_font.render("Nivel 3", True, (red))
-            else:
-                texto_nivel3 = option_font.render("Nivel 3", True, (white))
-
-                # Resto del código para blit de textos con colores actualizados
-            self.screen.blit(texto_nivel2, nivel2)
-            self.screen.blit(texto_nivel3, nivel3)
-                
-            pygame.display.flip()
-            
-
-    def show_countdown(self):
-        countdown_start = pygame.time.get_ticks()
-        countdown_duration = 3  # Duración de la cuenta regresiva en segundos
-
-        while True:
-            current_time = pygame.time.get_ticks()
-            countdown_elapsed = (current_time - countdown_start) / 1000
-            countdown_number = countdown_duration - int(countdown_elapsed)
-
-            if countdown_number > 0:
-                countdown_text = self.font.render(str(countdown_number), True, white)
-            else:
-                break  # Si la cuenta llega a cero, salir del bucle
-
-            # Mostrar el texto de la cuenta regresiva en la pantalla
-            text_rect = countdown_text.get_rect(center=self.screen.get_rect().center)
-            self.screen.blit(countdown_text, text_rect)
-            pygame.display.flip()
-
-        # Cambiar al siguiente nivel una vez que la cuenta regresiva termine
-        if self.level_number == 1:
-            self.start_level(Nivel2(level_number=2))
-        elif self.level_number == 2:
-            self.start_level(Nivel3(level_number=3))
-
-    
+                    elif nivel3.collidepoint(mouse_pos):  # Suponiendo nivel3 es el rectángulo de la opción del nivel 3
+                        self.start_level(Nivel3(level_number=3))
+                        running = False
+                        
     def start_level(self, level_instance):
         level_instance.run(self.screen)
         
@@ -453,13 +411,19 @@ class Nivel1(Nivel):
                 self.obstacles_touched.add(obstacle)  
                 self.elapsed_time += 2  
                 if self.elapsed_time >= self.total_time:
-                    self.game_over() 
+                    self.game_over()
         
         #colision con los fuegos
         fires_hit_player = pygame.sprite.spritecollide(self.player, self.enemy.fires_group, True)
         for fire in fires_hit_player:
-            self.score -= 2  
+            self.score -= 2
         
+        #colisiones con la lava
+        if pygame.sprite.spritecollide(self.player, self.invisible_platforms_group, False):
+            self.player_vidas -= 1
+            if self.player_vidas <= 0:
+                self.game_over()
+            
         #colision con enemigo    
         enemy_collisions = pygame.sprite.spritecollide(self.player, self.enemy_group, False)
         for enemy in enemy_collisions:
@@ -520,34 +484,20 @@ class Juego:
         self.screen = pygame.display.set_mode(size_screen)
         pygame.display.set_caption("The jungle")
         
-
     def run(self):
+        nivel_3 = Nivel3(level_number=3)
+        nivel_3.run(self.screen)
         running = True
-        current_level = 1
+        
         while running:
-            if current_level == 1:
-                nivel_1 = Nivel1(level_number=current_level)
-                nivel_1.run(self.screen)
-                if nivel_1.current_screen == "game":
-                    current_level += 1
-            elif current_level == 2:
-                nivel_2 = Nivel2(level_number=current_level)
-                nivel_2.run(self.screen)
-                if nivel_2.current_screen == "game":
-                    current_level += 1
-            elif current_level == 3:
-                nivel_3 = Nivel3(level_number=current_level)
-                nivel_3.run(self.screen)
-                if nivel_3.current_screen == "game":
-                    current_level += 1
-
+            
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False 
 
+    pygame.quit()
 
 
 if __name__ == "__main__":
     game = Juego()
     game.run()
-    pygame.quit()

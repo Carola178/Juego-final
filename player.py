@@ -20,7 +20,8 @@ class Player(pygame.sprite.Sprite):
         self.obstacles_group = None
         self.colliding = False
         self.slow_speed = 2
-        self.collision_duration = 1000        
+        self.collision_duration = 1000 
+        self.score = 0
 
     def set_obstacles_group(self, obstacles_group):
         self.obstacles_group = obstacles_group
@@ -92,7 +93,7 @@ class Player(pygame.sprite.Sprite):
             self.rect.y -= self.speed
             
     def jump(self):
-        self.speed_vert = -20
+        self.speed_vert = -25
         
     def reset_position(self):
         self.rect.x = 50
