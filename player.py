@@ -13,12 +13,13 @@ class Player(pygame.sprite.Sprite):
         self.current_sprite = 0
         self.image = self.animations[self.direction][self.current_sprite]
         self.rect = self.image.get_rect(topleft=(70, 90))
-        self.speed = 5
+        self.speed = 5.5
         self.last_update = pygame.time.get_ticks()
         self.time_animation = 100
         self.speed_vert = 0
         self.obstacles_group = None
         self.colliding = False
+        self.image = pygame.Surface((30, 30))
         self.slow_speed = 2
         self.collision_duration = 1000 
         self.score = 0

@@ -58,4 +58,6 @@ gestor.cargar_sonido('musica_fondo_inicio', './src/assets/sounds/musica_fondo_in
 gestor.cargar_sonido('musica_de_fondo', './src/assets/sounds/musica_de_fondo.mp3')
 gestor.cargar_sonido('pausa', './src/assets/sounds/sonido_pausa.mp3')
 gestor.cargar_sonido('laser', './src/assets/sounds/sonido_laser.mp3')
+gestor.cargar_sonido('diamantes', './src/assets/sounds/sonido_diamantes.mp3')
+
 

@@ -7,14 +7,12 @@ from sprite_sheet import SpriteSheets
 from plataforma import *
 from sys import *
 from random import *
-from fire_dragon import Fire
 from obstacles import Obstacle
 from settings_screen import *
 from coins import Coin
 from pantalla_inicio import Menu
 from diamantes import Diamante
 from nivel3 import Nivel3
-
 
 
 class Nivel:
@@ -76,6 +74,7 @@ class Nivel2(Nivel):
         self.final_score_image = pygame.image.load("./src/assets/images/marco_final_score.png").convert_alpha()
         
         #enemy stars
+        self.enemies = []
         self.enemy_shooting = False 
         self.shoot_sound = pygame.mixer.Sound("./src/assets/sounds/sonido_laser.mp3")
         self.obstacles_touched = set()
@@ -97,8 +96,21 @@ class Nivel2(Nivel):
         self.player = Player([self.all_sprites], sprite_sheet_player)
         self.player.set_obstacles_group(self.obstacles_group)
 
-        self.enemy = Enemy([self.all_sprites, self.enemy_group], sprite_sheet_enemy)
-        
+        enemies_positions = [(WIDTH - 50, 0), (WIDTH - 100, 0)]  
+        for pos in enemies_positions:
+            enemy = Enemy([self.all_sprites, self.enemy_group], sprite_sheet_enemy)
+            enemy.rect.topleft = pos
+            self.enemies.append(enemy)
+            
+        for enemy in self.enemies:
+            enemy.speed = 2   
+
+        # Asignar al jugador a cada enemigo
+        for enemy in self.enemies:
+            enemy.set_player(self.player)
+            
+            
+            
         self.paused = False
 
 
@@ -141,8 +153,6 @@ class Nivel2(Nivel):
         self.platform2 = InvisiblePlatform(330, 200, 40, 50)
         self.platform3 = InvisiblePlatform(750, 200, 40, 50)
         self.platform4 = InvisiblePlatform(1010, 315, 40, 50)
-        # self.platform_piso = InvisiblePlatform(30, HEIGHT - 40, 900, 200)
-
         self.invisible_platforms_group.add(self.platform1, self.platform2, self.platform3, self.platform4)
 
     def start_timer(self):
@@ -160,97 +170,112 @@ class Nivel2(Nivel):
         
         
     def run(self, screen):
-        running = True
-        countdown_start = pygame.time.get_ticks()
-        self.screen = screen
-        self.init()  
-        while running:
-            self.clock.tick(FPS)
+            self.screen = screen
+            running = True
+            player_name_screen = None
+            result = None
+            countdown_start = pygame.time.get_ticks()
+            self.init()
+            in_menu = True
+            in_name_screen = False
 
-            for event in pygame.event.get():
-                if event.type == QUIT:
-                    running = False
-                    
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    mouse_pos = pygame.mouse.get_pos()
-                    
-                elif event.type == KEYDOWN:
-                    if event.key == K_UP:
-                        self.player.jump()
-                    elif event.key == pygame.K_SPACE:
-                        if self.current_screen == "game":
-                            self.current_screen = "config"
-                        self.paused = not self.paused
+            while running:
+                self.clock.tick(FPS)
 
-                        if self.paused:
-                            pygame.mixer.music.pause()
-                            self.music_paused = True
-                            self.pause_sound.play()
-                        else:
-                            self.current_screen = "game"
-                            pygame.mixer.music.unpause()
-                            self.music_paused = False
+                for event in pygame.event.get():
+                    if event.type == QUIT:
+                        running = False
 
-                    elif event.type == KEYUP:
-                        if event.key == K_e:
-                            self.enemy_shooting = False
+                    elif event.type == pygame.MOUSEBUTTONDOWN:
+                        mouse_pos = pygame.mouse.get_pos()
+                    elif event.type == KEYDOWN:
+                        if event.key == K_UP:
+                            self.player.jump()
+                        elif event.key == pygame.K_SPACE:
+                            if self.current_screen == "game":
+                                self.current_screen = "config"
+                            self.paused = not self.paused
 
+                            if self.paused:
+                                pygame.mixer.music.pause()
+                                self.music_paused = True
+                                self.pause_sound.play()
+                            else:
+                                self.current_screen = "game"
+                                pygame.mixer.music.unpause()
+                                self.music_paused = False
 
-            if self.in_menu:
-                pygame.mixer.music.play(-1) 
-                self.screen.blit(self.menu_background, (0, 0))
-                
-                action = self.menu.run()
-                
-                if action == "start":
-                    self.countdown_active = True  
-                    self.in_menu = False
-                    pygame.mixer.music.stop()
-                    self.musica_fondo = pygame.mixer.music.load("./src/assets/sounds/musica_de_fondo.mp3")
+                if in_menu and not in_name_screen:
                     pygame.mixer.music.play(-1)
-                    pygame.mixer.music.set_volume(0.2)
-                    
-                elif action == "quit":
-                    running = False
+                    self.screen.blit(self.menu_background, (0, 0))
+                    action = self.menu.run()
 
-            elif self.countdown_active:  
-                self.screen.fill(black)
-                current_time = pygame.time.get_ticks()
-                countdown_elapsed = (current_time - countdown_start) / 1700 
-                countdown_number = 3 - int(countdown_elapsed)  
-                
-                if countdown_number > 0:
-                    countdown_text = self.font.render(str(countdown_number), True, white)
-                else:
-                    countdown_text = self.font.render("GO!", True, white) 
-                text_rect = countdown_text.get_rect(center=self.screen.get_rect().center)
-                self.screen.blit(countdown_text, text_rect)
-                
-                if countdown_number >= 1 and countdown_number <= 3:
-                    pygame.mixer.music.pause()  
-                
-                pygame.display.flip()  
+                    if action == "Comenzar":
+                        self.countdown_active = True
+                        in_menu = False
+                        pygame.mixer.music.stop()
+                        self.musica_fondo = pygame.mixer.music.load("./src/assets/sounds/musica_de_fondo.mp3")
+                        pygame.mixer.music.play(-1)
+                        pygame.mixer.music.set_volume(0.2)
 
-                if countdown_number <= 0:
-                    pygame.mixer.music.unpause()
-                    self.countdown_active = False
-                    self.in_game = True  
-                    self.elapsed_time = 0
+                    elif action == "Salir":
+                        running = False
 
-            elif self.in_game:
-                if not self.paused:
-                    self.update() 
+                if self.countdown_active:
+                    self.screen.fill(black)
+                    current_time = pygame.time.get_ticks()
+                    countdown_elapsed = (current_time - countdown_start) / 1000 
+                    countdown_number = 3 - int(countdown_elapsed)
 
-                self.draw()  
+                    if countdown_number > 0:
+                        countdown_text = self.font.render(str(countdown_number), True, white)
+                    else:
+                        countdown_text = self.font.render("GO!", True, white)
+                    text_rect = countdown_text.get_rect(center=self.screen.get_rect().center)
+                    self.screen.blit(countdown_text, text_rect)
 
-                if self.current_screen == "game" and not self.paused:
+                    if countdown_number >= 1 and countdown_number <= 3:
+                        pygame.mixer.music.pause()
+
+                    pygame.display.flip()
+
+                    if countdown_number <= 0:
+                        pygame.mixer.music.unpause()
+                        self.countdown_active = False
+                        self.in_game = True
+                        self.elapsed_time = 0
+
+                if self.in_game and not self.paused:
+                    self.update()
+                    self.draw()
                     self.elapsed_time += self.clock.get_time() / 1000
+
                     if self.elapsed_time >= self.total_time:
                         self.game_over()
 
                 if self.paused and self.current_screen == "game":
                     text_rect = self.pause_text.get_rect(center=self.screen.get_rect().center)
                     self.screen.blit(self.pause_text, text_rect)
+
+                if player_name_screen:
+                    player_name_screen.handle_event(event)
+                    result = player_name_screen.update()
+                    
+
+            
+                    if result == "Menu":
+                        in_menu = True  
+                        in_name_screen = False
+                        player_name_screen = None
+                    elif result == "Done":
+                        self.player_name = player_name_screen.text
+                        in_menu = True
+                        in_name_screen = False
+                        player_name_screen = None
+
+                pygame.display.flip()
+
+            pygame.quit()
 
     def show_score_screen(self):
         pygame.mixer.music.stop()
@@ -260,6 +285,12 @@ class Nivel2(Nivel):
         option_color2 = black
         option_hover_color2 = red
         self.level_completed = True
+        
+        if len(self.coins_group) == 0 and len(self.diamantes_group) == 0:
+            self.show_score_screen()
+            self.save_score(self.player_name, self.score)
+            if self.level_number == 3:  # Mostrar ranking al final del tercer nivel
+                self.show_ranking()
 
 
         original_image = pygame.image.load("./src/assets/images/marco_final_score.png").convert_alpha()
@@ -347,14 +378,14 @@ class Nivel2(Nivel):
 
         # Muestra las opciones para el Nivel 2 y Nivel 3
         option_font = pygame.font.Font(None, 36)
-        texto_nivel2 = option_font.render("Nivel 2", True, (white))
+        texto_nivel1 = option_font.render("Nivel 1", True, (white))
         texto_nivel3 = option_font.render("Nivel 3", True, (white))
 
-        nivel2 = texto_nivel2.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2 - 40))
+        nivel1 = texto_nivel1.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2 - 40))
         nivel3 = texto_nivel3.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2 + 40))
         
 
-        self.screen.blit(texto_nivel2, nivel2)
+        self.screen.blit(texto_nivel1, nivel1)
         self.screen.blit(texto_nivel3, nivel3)
         running = True
         while running:
@@ -363,14 +394,37 @@ class Nivel2(Nivel):
                     self.close()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     mouse_pos = pygame.mouse.get_pos()
-                    if nivel2.collidepoint(mouse_pos):  
+                    if nivel1.collidepoint(mouse_pos):  
                         self.start_level(Nivel2(level_number=2))
                         running = False 
 
                     elif nivel3.collidepoint(mouse_pos):
                         self.start_level(Nivel3(level_number=3))
                         running = False
-                        
+
+    def show_countdown(self):
+        countdown_start = pygame.time.get_ticks()
+        countdown_duration = 3 
+
+        while True:
+            current_time = pygame.time.get_ticks()
+            countdown_elapsed = (current_time - countdown_start) / 1000
+            countdown_number = countdown_duration - int(countdown_elapsed)
+
+            if countdown_number > 0:
+                countdown_text = self.font.render(str(countdown_number), True, white)
+            else:
+                break  # Si la cuenta llega a cero, salir del bucle
+
+            # Mostrar el texto de la cuenta regresiva en la pantalla
+            text_rect = countdown_text.get_rect(center=self.screen.get_rect().center)
+            self.screen.blit(countdown_text, text_rect)
+            pygame.display.flip()
+
+        # Cambiar al siguiente nivel una vez que la cuenta regresiva termine
+        if self.level_number == 2:
+            self.start_level(Nivel3(level_number=3))
+    
     def start_level(self, level_instance):
         level_instance.run(self.screen)
         
@@ -413,10 +467,6 @@ class Nivel2(Nivel):
                 if self.elapsed_time >= self.total_time:
                     self.game_over()
         
-        #colision con los fuegos
-        fires_hit_player = pygame.sprite.spritecollide(self.player, self.enemy.fires_group, True)
-        for fire in fires_hit_player:
-            self.score -= 2  
         
         #colision con enemigo    
         enemy_collisions = pygame.sprite.spritecollide(self.player, self.enemy_group, False)
@@ -426,7 +476,8 @@ class Nivel2(Nivel):
         if self.music_paused:
             pygame.mixer.music.stop()
             
-
+        for enemy in self.enemies:
+            enemy.update()
             
         self.all_sprites.update()
         

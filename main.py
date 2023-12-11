@@ -7,7 +7,6 @@ from sprite_sheet import SpriteSheets
 from plataforma import *
 from sys import *
 from random import *
-from fire_dragon import Fire
 from obstacles import Obstacle
 from settings_screen import *
 from coins import Coin
@@ -15,7 +14,6 @@ from pantalla_inicio import Menu
 from diamantes import Diamante
 from nivel2 import Nivel2
 from nivel3 import Nivel3
-# from recursos import Recursos
 
 
 class Nivel:
@@ -24,12 +22,12 @@ class Nivel:
 
 
 class Nivel1(Nivel):
-    def __init__(self, level_number=1):
+    def __init__(self, level_number=1, player_name="Default Player"):
         super().__init__(level_number)  
         pygame.init()
         self.in_menu = True
         self.in_game = False
-        
+        self.player_name = player_name
 
 
     def init(self):
@@ -37,8 +35,7 @@ class Nivel1(Nivel):
         self.screen = pygame.display.set_mode(size_screen)
         pygame.display.set_caption("The jungle")
         pygame.display.set_icon(pygame.image.load("./src/assets/images/icon.png"))
-        self.background = pygame.transform.scale(pygame.image.load("./src/assets/images/background.jpg"), (WIDTH, HEIGHT))
-    
+        self.background = pygame.transform.scale(pygame.image.load("./src/assets/images/background.jpg"), (WIDTH, HEIGHT))    
         
         
         self.music_paused = False
@@ -49,6 +46,7 @@ class Nivel1(Nivel):
         self.current_screen = "game"
         
         #pantalla de inicio
+        # Obtener la fecha y hora actual
         self.menu = Menu(self.screen)
         self.countdown_active = True
         self.countdown_duration = 3
@@ -76,6 +74,7 @@ class Nivel1(Nivel):
         self.final_score_image = pygame.image.load("./src/assets/images/marco_final_score.png").convert_alpha()
         
         #enemy stars
+        self.enemies = []
         self.enemy_shooting = False 
         self.shoot_sound = pygame.mixer.Sound("./src/assets/sounds/sonido_laser.mp3")
         self.obstacles_touched = set()
@@ -97,8 +96,17 @@ class Nivel1(Nivel):
         # Creación del jugador y enemigo
         self.player = Player([self.all_sprites], sprite_sheet_player)
         self.player.set_obstacles_group(self.obstacles_group)
+        
+        
+        enemies_positions = [(WIDTH - 50, 0), (WIDTH - 100, 0)]  
+        for pos in enemies_positions:
+            enemy = Enemy([self.all_sprites, self.enemy_group], sprite_sheet_enemy)
+            enemy.rect.topleft = pos
+            self.enemies.append(enemy) 
 
-        self.enemy = Enemy([self.all_sprites, self.enemy_group], sprite_sheet_enemy)
+        # Asignar al jugador a cada enemigo
+        for enemy in self.enemies:
+            enemy.set_player(self.player)
         
         self.paused = False
 
@@ -161,94 +169,87 @@ class Nivel1(Nivel):
         self.player.reset_position()  
         self.coins_group.empty()
         
-        
     def run(self, screen):
-        running = True
-        countdown_start = pygame.time.get_ticks()
-        self.screen = screen
-        self.init()
-        
-        while running:
-            self.clock.tick(FPS)
+            self.screen = screen
+            running = True
+            player_name_screen = None
+            result = None
+            countdown_start = pygame.time.get_ticks()
+            self.init()
+            in_menu = True
+            in_name_screen = False
 
-            for event in pygame.event.get():
-                if event.type == QUIT:
-                    running = False
-                    
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    mouse_pos = pygame.mouse.get_pos()
+            while running:
+                self.clock.tick(FPS)
 
-                elif event.type == KEYDOWN:
-                    if event.key == K_UP:
-                        self.player.jump()
-                    elif event.key == pygame.K_SPACE:
-                        if self.current_screen == "game":
-                            self.current_screen = "config"
-                        self.paused = not self.paused
+                for event in pygame.event.get():
+                    if event.type == QUIT:
+                        running = False
 
-                        if self.paused:
-                            pygame.mixer.music.pause()
-                            self.music_paused = True
-                            self.pause_sound.play()
-                        else:
-                            self.current_screen = "game"
-                            pygame.mixer.music.unpause()
-                            self.music_paused = False
+                    elif event.type == pygame.MOUSEBUTTONDOWN:
+                        mouse_pos = pygame.mouse.get_pos()
+                    elif event.type == KEYDOWN:
+                        if event.key == K_UP:
+                            self.player.jump()
+                        elif event.key == pygame.K_SPACE:
+                            if self.current_screen == "game":
+                                self.current_screen = "config"
+                            self.paused = not self.paused
 
-                    elif event.type == KEYUP:
-                        if event.key == K_e:
-                            self.enemy_shooting = False
+                            if self.paused:
+                                pygame.mixer.music.pause()
+                                self.music_paused = True
+                                self.pause_sound.play()
+                            else:
+                                self.current_screen = "game"
+                                pygame.mixer.music.unpause()
+                                self.music_paused = False
 
-
-            if self.in_menu:
-                pygame.mixer.music.play(-1) 
-                self.screen.blit(self.menu_background, (0, 0))
-                
-                action = self.menu.run()
-                
-                if action == "start":
-                    self.countdown_active = True  
-                    self.in_menu = False
-                    pygame.mixer.music.stop()
-                    self.musica_fondo = pygame.mixer.music.load("./src/assets/sounds/musica_de_fondo.mp3")
+                if in_menu and not in_name_screen:
                     pygame.mixer.music.play(-1)
-                    pygame.mixer.music.set_volume(0.2)
-                    
-                elif action == "quit":
-                    running = False
+                    self.screen.blit(self.menu_background, (0, 0))
+                    action = self.menu.run()
 
-            elif self.countdown_active:  
-                self.screen.fill(black)
-                current_time = pygame.time.get_ticks()
-                countdown_elapsed = (current_time - countdown_start) / 1700 
-                countdown_number = 3 - int(countdown_elapsed)  
-                
-                if countdown_number > 0:
-                    countdown_text = self.font.render(str(countdown_number), True, white)
-                else:
-                    countdown_text = self.font.render("GO!", True, white) 
-                text_rect = countdown_text.get_rect(center=self.screen.get_rect().center)
-                self.screen.blit(countdown_text, text_rect)
-                
-                if countdown_number >= 1 and countdown_number <= 3:
-                    pygame.mixer.music.pause()  
-                
-                pygame.display.flip()  
+                    if action == "Comenzar":
+                        self.countdown_active = True
+                        in_menu = False
+                        pygame.mixer.music.stop()
+                        self.musica_fondo = pygame.mixer.music.load("./src/assets/sounds/musica_de_fondo.mp3")
+                        pygame.mixer.music.play(-1)
+                        pygame.mixer.music.set_volume(0.2)
 
-                if countdown_number <= 0:
-                    pygame.mixer.music.unpause()
-                    self.countdown_active = False
-                    self.in_game = True  
-                    self.elapsed_time = 0
+                    elif action == "Salir":
+                        running = False
 
-            elif self.in_game:
-                if not self.paused:
-                    self.update() 
+                if self.countdown_active:
+                    self.screen.fill(black)
+                    current_time = pygame.time.get_ticks()
+                    countdown_elapsed = (current_time - countdown_start) / 1000 
+                    countdown_number = 3 - int(countdown_elapsed)
 
-                self.draw()  
+                    if countdown_number > 0:
+                        countdown_text = self.font.render(str(countdown_number), True, white)
+                    else:
+                        countdown_text = self.font.render("GO!", True, white)
+                    text_rect = countdown_text.get_rect(center=self.screen.get_rect().center)
+                    self.screen.blit(countdown_text, text_rect)
 
-                if self.current_screen == "game" and not self.paused:
+                    if countdown_number >= 1 and countdown_number <= 3:
+                        pygame.mixer.music.pause()
+
+                    pygame.display.flip()
+
+                    if countdown_number <= 0:
+                        pygame.mixer.music.unpause()
+                        self.countdown_active = False
+                        self.in_game = True
+                        self.elapsed_time = 0
+
+                if self.in_game and not self.paused:
+                    self.update()
+                    self.draw()
                     self.elapsed_time += self.clock.get_time() / 1000
+
                     if self.elapsed_time >= self.total_time:
                         self.game_over()
 
@@ -256,6 +257,32 @@ class Nivel1(Nivel):
                     text_rect = self.pause_text.get_rect(center=self.screen.get_rect().center)
                     self.screen.blit(self.pause_text, text_rect)
 
+                if player_name_screen:
+                    player_name_screen.handle_event(event)
+                    result = player_name_screen.update()
+                    
+
+            
+                    if result == "Menu":
+                        in_menu = True  
+                        in_name_screen = False
+                        player_name_screen = None
+                    elif result == "Done":
+                        self.player_name = player_name_screen.text
+                        in_menu = True
+                        in_name_screen = False
+                        player_name_screen = None
+
+                pygame.display.flip()
+
+            pygame.quit()
+    
+    def reset_level(self):  # Nuevo método para reiniciar el nivel
+        # Lógica para restablecer las variables y el estado del nivel
+        self.in_game = True
+        self.score = 0        
+    
+    
     def show_score_screen(self):
         pygame.mixer.music.stop()
         final_score = self.score
@@ -284,7 +311,9 @@ class Nivel1(Nivel):
         # Calcula la posición para centrar el texto en la parte superior
         text_rect = score_text.get_rect(center=(self.screen.get_width() // 2, 200))
         self.screen.blit(score_text, text_rect)
-
+        
+        with open('puntuaciones.txt', 'a') as file:
+            file.write(f"Jugador: {self.player_name} Puntuacion: {self.score}\n")
         # Menú de opciones
         option_font = pygame.font.Font(None, 36)
         option_text1 = option_font.render("Continuar", True, (black))
@@ -455,11 +484,6 @@ class Nivel1(Nivel):
                 if self.elapsed_time >= self.total_time:
                     self.game_over() 
         
-        #colision con los fuegos
-        fires_hit_player = pygame.sprite.spritecollide(self.player, self.enemy.fires_group, True)
-        for fire in fires_hit_player:
-            self.score -= 2  
-        
         #colision con enemigo    
         enemy_collisions = pygame.sprite.spritecollide(self.player, self.enemy_group, False)
         for enemy in enemy_collisions:
@@ -468,7 +492,8 @@ class Nivel1(Nivel):
         if self.music_paused:
             pygame.mixer.music.stop()
             
-
+        for enemy in self.enemies:
+            enemy.update()
             
         self.all_sprites.update()
         
@@ -519,33 +544,56 @@ class Juego:
         pygame.init()
         self.screen = pygame.display.set_mode(size_screen)
         pygame.display.set_caption("The jungle")
-        
+        self.rank_shown = False
+        self.games_played = 0 
 
+    def show_ranking(self):
+        if not self.rank_shown:
+            with open('puntuaciones.txt', 'r') as file:
+                lines = file.readlines()
+                sorted_scores = sorted(lines, key=lambda x: int(x.split(': ')[1]), reverse=True)
+                top_scores = sorted_scores[:10]
+
+                print("=== RANKING ===")
+                for score in top_scores:
+                    print(score.strip())
+
+            self.rank_shown = True
+            
     def run(self):
         running = True
         current_level = 1
+        player_name = None 
+        games_played = 0
+        getting_player_name = True
+        
+        
         while running:
             if current_level == 1:
                 nivel_1 = Nivel1(level_number=current_level)
                 nivel_1.run(self.screen)
                 if nivel_1.current_screen == "game":
+                    games_played += 1
                     current_level += 1
             elif current_level == 2:
                 nivel_2 = Nivel2(level_number=current_level)
                 nivel_2.run(self.screen)
                 if nivel_2.current_screen == "game":
+                    games_played += 1
                     current_level += 1
             elif current_level == 3:
                 nivel_3 = Nivel3(level_number=current_level)
                 nivel_3.run(self.screen)
                 if nivel_3.current_screen == "game":
+                    games_played += 1
                     current_level += 1
+                    
+            if self.games_played >= 5:
+                self.show_ranking()        
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False 
-
-
 
 if __name__ == "__main__":
     game = Juego()
