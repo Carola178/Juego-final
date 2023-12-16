@@ -11,6 +11,7 @@ class Menu:
         self.menu_items = ["Comenzar",  "Salir"]
         self.selected = 0
         self.text = ''
+        self.player_name = ""
         self.font = pygame.font.Font(None, 32)
         self.input_box = pygame.Rect(100, 0, 200, 32)
         self.input_box.center = screen.get_rect().center
@@ -56,6 +57,8 @@ class Menu:
         title_text = title_font.render(self.game_title, True, black)
         title_rect = title_text.get_rect(center=(WIDTH // 2, 70))  
         self.screen.blit(title_text, title_rect)
+        
+        
         
         menu_y = 430
         for idx, item in enumerate(self.menu_items):
@@ -112,9 +115,8 @@ class Menu:
                 if action == "Comenzar":
                     countdown_active = True
                     countdown_start = pygame.time.get_ticks()
-                    player_name = self.get_text()
-                    # with open('puntuaciones.txt', 'a') as file:
-                    #     file.write(f"Jugador: {player_name}\n")
+                    player_name = self.get_player_name() 
+
         
                 elif action == "Salir":
                     return "Salir"
@@ -151,4 +153,3 @@ class Menu:
         
     def get_text(self):
         return self.text
-            

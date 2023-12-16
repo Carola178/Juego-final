@@ -14,7 +14,7 @@ from pantalla_inicio import Menu
 from diamantes import Diamante
 from nivel2 import Nivel2
 from nivel3 import Nivel3
-
+from base_de_datos import DataBase
 
 class Nivel:
     def __init__(self, level_number):
@@ -22,13 +22,12 @@ class Nivel:
 
 
 class Nivel1(Nivel):
-    def __init__(self, level_number=1, player_name="Default Player"):
+    def __init__(self, level_number=1):
         super().__init__(level_number)  
         pygame.init()
         self.in_menu = True
         self.in_game = False
-        self.player_name = player_name
-
+        self.db = DataBase()
 
     def init(self):
         self.clock = pygame.time.Clock()
@@ -313,7 +312,10 @@ class Nivel1(Nivel):
         self.screen.blit(score_text, text_rect)
         
         with open('puntuaciones.txt', 'a') as file:
-            file.write(f"Jugador: {self.player_name} Puntuacion: {self.score}\n")
+            file.write(f"Puntuacion: {self.score}\n")
+
+        self.save_score_to_database()
+        
         # Menú de opciones
         option_font = pygame.font.Font(None, 36)
         option_text1 = option_font.render("Continuar", True, (black))
@@ -365,6 +367,14 @@ class Nivel1(Nivel):
 
             pygame.display.flip()
 
+    def save_score_to_database(self):
+        player_id = 1  # Supongamos que hay un solo jugador por ahora
+        game_id = self.level_number  # Usamos el número de nivel como game_id
+        score = self.score  # El puntaje actual del jugador
+        
+        # Llama al método de tu objeto de base de datos para agregar el puntaje
+        self.db.add_score(player_id, game_id, score)
+        
     def next_level_menu(self):
         self.screen.fill(black)
         next_level_font = pygame.font.Font(None, 50)
@@ -446,8 +456,11 @@ class Nivel1(Nivel):
         
         
         pygame.display.flip()
+    
+    
         
     def update(self):
+        self.score += 1
         #colisiones player y plataformas
         if pygame.sprite.spritecollide(self.player, self.invisible_platforms_group, False):
             for plataf in self.invisible_platforms_group:
@@ -498,8 +511,13 @@ class Nivel1(Nivel):
         self.all_sprites.update()
         
         if self.elapsed_time <= 0 and len(self.coins_group) == 0 and len(self.diamantes_group) == 0:
-            self.show_score_screen()            
+            # Si se agotó el tiempo y se recogieron todas las monedas y diamantes, mostrar pantalla final
+            self.show_score_screen()
+        elif self.elapsed_time >= self.total_time:
+            self.save_score_to_database()
+            self.show_score_screen()              
             
+        
     def draw(self):
         self.screen.blit(self.background, (0, 0))
         self.coins_group.draw(self.screen)
@@ -545,55 +563,37 @@ class Juego:
         self.screen = pygame.display.set_mode(size_screen)
         pygame.display.set_caption("The jungle")
         self.rank_shown = False
-        self.games_played = 0 
+        self.games_played = 0
+        self.db = DataBase()
 
-    def show_ranking(self):
-        if not self.rank_shown:
-            with open('puntuaciones.txt', 'r') as file:
-                lines = file.readlines()
-                sorted_scores = sorted(lines, key=lambda x: int(x.split(': ')[1]), reverse=True)
-                top_scores = sorted_scores[:10]
-
-                print("=== RANKING ===")
-                for score in top_scores:
-                    print(score.strip())
-
-            self.rank_shown = True
-            
     def run(self):
         running = True
         current_level = 1
-        player_name = None 
-        games_played = 0
-        getting_player_name = True
-        
-        
+        nivel = None
+
         while running:
             if current_level == 1:
-                nivel_1 = Nivel1(level_number=current_level)
-                nivel_1.run(self.screen)
-                if nivel_1.current_screen == "game":
-                    games_played += 1
-                    current_level += 1
+                nivel = Nivel1(level_number=current_level)
             elif current_level == 2:
-                nivel_2 = Nivel2(level_number=current_level)
-                nivel_2.run(self.screen)
-                if nivel_2.current_screen == "game":
-                    games_played += 1
-                    current_level += 1
+                nivel = Nivel2(level_number=current_level)
             elif current_level == 3:
-                nivel_3 = Nivel3(level_number=current_level)
-                nivel_3.run(self.screen)
-                if nivel_3.current_screen == "game":
-                    games_played += 1
-                    current_level += 1
-                    
-            if self.games_played >= 5:
-                self.show_ranking()        
+                nivel = Nivel3(level_number=current_level)
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False 
+            nivel.run(self.screen)
+
+            if nivel.current_screen == "game":
+                self.games_played += 1
+                self.save_score_to_database(nivel.score, current_level)
+                current_level += 1
+
+            if current_level > 3:
+                running = False
+
+    def save_score_to_database(self, score, level_number):
+        player_id = 1  # Supongamos que hay un solo jugador por ahora
+        game_id = level_number  # Esto podría ser el número de nivel o un identificador único del juego
+        self.db.add_score(player_id, game_id, score)
+
 
 if __name__ == "__main__":
     game = Juego()
